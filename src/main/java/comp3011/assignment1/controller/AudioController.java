@@ -24,8 +24,12 @@ public class AudioController {
         try {
 
             // 1. Get API key from environment variable
-            String apiKey = System.getenv("");
-
+            String apiKey = System.getenv("OPENAI_API_KEY");
+            
+            System.out.println(
+            	    "API key loaded: " + (apiKey != null && !apiKey.isBlank())
+            	);
+            
             if (apiKey == null || apiKey.isBlank()) {
                 return ResponseEntity.internalServerError()
                         .body("OPENAI_API_KEY is not set.");

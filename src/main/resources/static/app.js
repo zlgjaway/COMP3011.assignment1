@@ -48,6 +48,7 @@ function stopRecording() {
 }
 
 async function uploadAudio() {
+
     const audioBlob = new Blob(audioChunks, {
         type: mediaRecorder.mimeType
     });
@@ -60,19 +61,44 @@ async function uploadAudio() {
     formData.append("audio", audioBlob, "recording.webm");
 
     try {
+
         const response = await fetch("/api/v1/transcribe", {
             method: "POST",
             body: formData
         });
 
         if (!response.ok) {
-            throw new Error("Upload failed");
+
+            // Get the actual error message from Spring Boot
+            const errorText = await response.text();
+
+            console.error(
+                "Server error:",
+                response.status,
+                errorText
+            );
+
+            throw new Error(
+                "Server returned " +
+                response.status +
+                ": " +
+                errorText
+            );
         }
 
-        status.textContent = "Audio successfully received by server.";
+        const result = await response.text();
+
+        console.log("Server response:", result);
+
+        status.textContent =
+            "Audio successfully received by server.";
 
     } catch (error) {
-        console.error(error);
-        status.textContent = "Failed to upload audio.";
+
+        console.error("Upload error:", error);
+
+        status.textContent =
+            "Upload failed: " + error.message;
     }
 }
+
