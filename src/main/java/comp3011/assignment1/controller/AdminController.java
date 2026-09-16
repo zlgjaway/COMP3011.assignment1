@@ -3,7 +3,6 @@ package comp3011.assignment1.controller;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
@@ -19,20 +18,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
 
     private final ApplicationContext applicationContext;
+    private final GlobalStats globalStats;
 
     // Time when this Spring Boot application started
     private final Instant serverStart = Instant.now();
 
-    // Global token counters
-    private final AtomicLong inputTokens = new AtomicLong(0);
-    private final AtomicLong outputTokens = new AtomicLong(0);
-
     // Prevent shutdown from being requested more than once
-    private final AtomicBoolean shutdownInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean shutdownInProgress =
+            new AtomicBoolean(false);
 
-    public AdminController(ApplicationContext applicationContext) {
+    public AdminController(
+            ApplicationContext applicationContext,
+            GlobalStats globalStats) {
+
         this.applicationContext = applicationContext;
+        this.globalStats = globalStats;
     }
+
 
     @GetMapping("/admin/uptime")
     public ResponseEntity<UptimeResponse> getServerUptime() {
@@ -40,7 +42,8 @@ public class AdminController {
         Instant now = Instant.now();
 
         double uptimeSeconds =
-                Duration.between(serverStart, now).toNanos() / 1_000_000_000.0;
+                Duration.between(serverStart, now)
+                        .toNanos() / 1_000_000_000.0;
 
         UptimeResponse response = new UptimeResponse(
                 serverStart.toString(),
@@ -51,13 +54,10 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
-    /*
-     * POST /api/v1/admin/shutdown
-     */
+
     @PostMapping("/admin/shutdown")
     public ResponseEntity<?> shutdownServer() {
 
-        // Only allow the first shutdown request
         if (!shutdownInProgress.compareAndSet(false, true)) {
 
             ErrorResponse error = new ErrorResponse(
@@ -68,25 +68,27 @@ public class AdminController {
                     "/api/v1/admin/shutdown"
             );
 
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(error);
         }
 
         ShutdownResponse response =
-                new ShutdownResponse("Graceful shutdown requested.");
+                new ShutdownResponse(
+                        "Graceful shutdown requested."
+                );
 
-        /*
-         * Return 202 first.
-         *
-         * Shutdown happens asynchronously so that the HTTP response
-         * can be sent before the application stops.
-         */
         Thread shutdownThread = new Thread(() -> {
 
             try {
+
                 Thread.sleep(100);
 
                 int exitCode =
-                        SpringApplication.exit(applicationContext, () -> 0);
+                        SpringApplication.exit(
+                                applicationContext,
+                                () -> 0
+                        );
 
                 System.exit(exitCode);
 
@@ -104,37 +106,19 @@ public class AdminController {
                 .body(response);
     }
 
-    /*
-     * GET /api/v1/global/stats
-     */
+
     @GetMapping("/global/stats")
     public ResponseEntity<GlobalStatsResponse> getGlobalStats() {
 
         GlobalStatsResponse response =
                 new GlobalStatsResponse(
-                        inputTokens.get(),
-                        outputTokens.get()
+                        globalStats.getInputTokens(),
+                        globalStats.getOutputTokens()
                 );
 
         return ResponseEntity.ok(response);
     }
 
-    /*
-     * These methods will be called by AudioController
-     * when OpenAI returns token usage.
-     */
-    public void addInputTokens(long tokens) {
-        inputTokens.addAndGet(tokens);
-    }
-
-    public void addOutputTokens(long tokens) {
-        outputTokens.addAndGet(tokens);
-    }
-
-
-    // -------------------------
-    // Response classes
-    // -------------------------
 
     public static class UptimeResponse {
 
