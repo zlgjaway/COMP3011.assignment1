@@ -33,15 +33,6 @@ public class AudioController {
         Path tempFile = null;
 
         try {
-
-            // 1. Get API key from environment variable
-            String apiKey = System.getenv("OPENAI_API_KEY");
-
-            if (apiKey == null || apiKey.isBlank()) {
-                return ResponseEntity.internalServerError()
-                        .body("OPENAI_API_KEY is not set.");
-            }
-
             // 2. Save uploaded audio temporarily
             String filename =
                     "recording-" + UUID.randomUUID() + ".webm";
@@ -77,12 +68,8 @@ public class AudioController {
             HttpRequest request =
                     HttpRequest.newBuilder()
                             .uri(URI.create(
-                                    "https://api.openai.com/v1/audio/transcriptions"
+                                    "http://127.0.0.1:8000/v1/audio/transcriptions"
                             ))
-                            .header(
-                                    "Authorization",
-                                    "Bearer " + apiKey
-                            )
                             .header(
                                     "Content-Type",
                                     "multipart/form-data; boundary="
