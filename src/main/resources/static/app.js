@@ -86,12 +86,13 @@ async function uploadAudio() {
             );
         }
 
-        const result = await response.text();
+		const result = await response.json();
 
-        console.log("Server response:", result);
+		console.log("Server response:", result);
 
-        status.textContent =
-            "Audio successfully received by server.";
+		document.getElementById("result").textContent = result.text;
+
+		status.textContent = "Transcription complete.";
 
     } catch (error) {
 
